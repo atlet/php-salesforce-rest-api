@@ -5,24 +5,31 @@ namespace bjsmasth\Salesforce;
 use GuzzleHttp\Client;
 use Exception\Salesforce as SalesforceException;
 
-class CRUD
-{
+class CRUD {
     protected $instance_url;
     protected $access_token;
+    protected $nextRecordsUrl;
 
-    public function __construct()
-    {
+    public function __construct() {
         if (!isset($_SESSION) and !isset($_SESSION['salesforce'])) {
             throw new SalesforceException('Access Denied', 403);
         }
 
         $this->instance_url = $_SESSION['salesforce']['instance_url'];
         $this->access_token = $_SESSION['salesforce']['access_token'];
+        $this->setNextRecordsUrl('');
     }
 
-    public function query($query)
-    {
+    public function setNextRecordsUrl($url) {
+        $this->nextRecordsUrl = $url;
+    }
+
+    public function query($query) {
         $url = "{$this->instance_url}/services/data/v52.0/query";
+
+        if ($this->nextRecordsUrl) {
+            $url = $this->instance_url . $this->nextRecordsUrl;
+        }
 
         $client = new Client();
         $request = $client->request('GET', $url, [
@@ -37,8 +44,7 @@ class CRUD
         return json_decode($request->getBody(), true);
     }
 
-    public function create($object, array $data)
-    {
+    public function create($object, array $data) {
         $url = "{$this->instance_url}/services/data/v52.0/sobjects/{$object}/";
 
         $client = new Client();
@@ -63,11 +69,9 @@ class CRUD
         $id = $response["id"];
 
         return $id;
-
     }
 
-    public function update($object, $id, array $data)
-    {
+    public function update($object, $id, array $data) {
         $url = "{$this->instance_url}/services/data/v52.0/sobjects/{$object}/{$id}";
 
         $client = new Client();
@@ -91,8 +95,7 @@ class CRUD
         return $status;
     }
 
-    public function upsert($object, $field, $id, array $data)
-    {
+    public function upsert($object, $field, $id, array $data) {
         $url = "{$this->instance_url}/services/data/v52.0/sobjects/{$object}/{$field}/{$id}";
 
         $client = new Client();
@@ -116,8 +119,7 @@ class CRUD
         return $status;
     }
 
-    public function delete($object, $id)
-    {
+    public function delete($object, $id) {
         $url = "{$this->instance_url}/services/data/v52.0/sobjects/{$object}/{$id}";
 
         $client = new Client();
